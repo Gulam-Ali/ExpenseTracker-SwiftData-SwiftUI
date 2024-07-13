@@ -12,9 +12,9 @@ import SwiftUI
 @Model
 class ExpenseModel {
     //@Attribute(.unique) let name : String
-    let name : String
-    let expenseDate : Date
-    let amount : Double
+    var name : String
+    var expenseDate : Date
+    var amount : Double
     
     init(name: String, expenseDate: Date, amount: Double) {
         self.name = name

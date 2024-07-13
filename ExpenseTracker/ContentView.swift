@@ -10,20 +10,33 @@ import SwiftData
 
 struct ContentView: View {
     
+    @Environment (\.modelContext) var context
     @State private var isShowingItemSheet = false
-    var expenses : [ExpenseModel] = []
+    @Query(sort: \ExpenseModel.expenseDate, order: .reverse) var expenses : [ExpenseModel]
+    @State private var expenseToEdit : ExpenseModel?
     
     var body: some View {
         NavigationStack{
             List{
                 ForEach(expenses) { expense in
                     ExpenseCellView(expense: expense)
+                        .onTapGesture {
+                            expenseToEdit = expense
+                        }
                 }
+                .onDelete(perform: { indexSet in
+                    for index in indexSet{
+                        context.delete(expenses[index])
+                    }
+                })
             }
             .navigationTitle("Expenses")
             .navigationBarTitleDisplayMode(.large)
             .sheet(isPresented: $isShowingItemSheet, content: {
                 AddExpenseSheetView()
+            })
+            .sheet(item: $expenseToEdit, content: { expense in
+                EditExpenseSheetView(expense: expense)
             })
             .toolbar(content: {
                 if !expenses.isEmpty{
@@ -73,6 +86,8 @@ struct ExpenseCellView: View {
 }
 
 struct AddExpenseSheetView: View {
+    
+    @Environment (\.modelContext) var context
     @Environment (\.dismiss) private var dismiss
     @State private var name = ""
     @State private var purchaseDate = Date()
@@ -91,6 +106,9 @@ struct AddExpenseSheetView: View {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button(action: {
                         print("Done tapped")
+                        let expense = ExpenseModel(name: name, expenseDate: purchaseDate, amount: value)
+                        context.insert(expense)
+                        dismiss()
                     }, label: {
                         Text("Done")
                     })
@@ -101,6 +119,38 @@ struct AddExpenseSheetView: View {
                         dismiss()
                     }, label: {
                         Text("Cancel")
+                    })
+                }
+
+            })
+            
+        }
+    }
+}
+
+struct EditExpenseSheetView: View {
+    
+    @Environment (\.modelContext) var context
+    @Environment (\.dismiss) private var dismiss
+    @Bindable var expense : ExpenseModel
+    
+    var body: some View{
+        NavigationStack{
+            Form{
+                TextField("Item Name", text: $expense.name)
+                DatePicker("Purchase Date", selection: $expense.expenseDate, displayedComponents: .date)
+                TextField("Amount", value: $expense.amount, format: .currency(code: "INR"))
+                    .keyboardType(.decimalPad)
+            }
+            .navigationTitle("Update Expense")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(content: {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button(action: {
+                        print("update tapped")
+                        dismiss()
+                    }, label: {
+                        Text("Update")
                     })
                 }
 
